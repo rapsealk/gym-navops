@@ -45,6 +45,7 @@ class RimpacEnv(gym.Env):
     def step(self, action):
         done, info = False, {}
         for _ in range(SKIP_FRAMES):
+            observation = self._update_environment_state()
             for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
                 if terminal_steps.reward.shape[0] > 0:
                     info['win'] = team_id if terminal_steps.reward[0] > 0 else (1 - team_id)
@@ -62,18 +63,18 @@ class RimpacEnv(gym.Env):
             if done:
                 break
         if done:
-            self._update_environment_state()
-            observation = np.array([obs.terminal_steps.obs for obs in self.observation])
-            reward = np.array([obs.terminal_steps.reward for obs in self.observation])
+            if 0 in observation.shape:
+                observation = self.observation_cache
+            reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
         else:
             self._env.step()
             observation = self._update_environment_state()
             if 0 in observation.shape:
                 observation = self.observation_cache
             self.observation_cache = observation
-            reward = np.array([obs.decision_steps.reward for obs in self.observation])
+            reward = np.array([np.squeeze(obs.decision_steps.reward) for obs in self.observation])
             if 0 in reward.shape:
-                reward = np.array([obs.terminal_steps.reward for obs in self.observation])
+                reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
 
         return np.squeeze(observation, axis=1), np.squeeze(reward), done, info
 
