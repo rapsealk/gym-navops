@@ -12,3 +12,8 @@ register(
         'no_graphics': False
     }
 )
+
+register(
+    id='Mock-Rimpac-v0',
+    entry_point='gym_rimpac.envs:MockRimpacEnv'
+)

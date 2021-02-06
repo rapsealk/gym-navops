@@ -3,6 +3,6 @@
         "shape": [61]
     },
     "action_space": {
-        "shape": [21]
+        "shape": [20]
     }
 }

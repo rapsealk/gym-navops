@@ -76,7 +76,7 @@ class RimpacEnv(gym.Env):
             if 0 in reward.shape:
                 reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
 
-        return np.squeeze(observation, axis=1), np.squeeze(reward), done, info
+        return observation, np.squeeze(reward), done, info
 
     def reset(self):
         self._env.reset()
@@ -85,7 +85,7 @@ class RimpacEnv(gym.Env):
 
         observation = self._update_environment_state()
 
-        return np.squeeze(observation, axis=1)
+        return observation
 
     def render(self, mode='human', close=False):
         pass
@@ -104,4 +104,30 @@ class RimpacEnv(gym.Env):
     def _update_environment_state(self):
         self.steps = [self._env.get_steps(behavior_name=behavior) for behavior in self.behavior_names]
         self.observation = [Observation(*step) for step in self.steps]
-        return np.array([obs.decision_steps.obs for obs in self.observation])
+        return np.array([obs.decision_steps.obs for obs in self.observation]).squeeze()
+
+
+class MockRimpacEnv(gym.Env):
+
+    def __init__(self, n=2):
+        self._n = n
+        self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["action_space"]["shape"]))
+        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["observation_space"]["shape"]))
+
+    def step(self, action):
+        obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
+        return obs, 0, False, {}
+
+    def reset(self):
+        return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
+
+    def close(self):
+        pass
+
+    @property
+    def action_space(self):
+        return self._action_space
+
+    @property
+    def observation_space(self):
+        return self._observation_space

@@ -1,9 +1,11 @@
 # gym-rimpac
-![Python 3.8](https://img.shields.io/badge/language-Python%203.8-blue.svg)
+![GitHub Actions CI](https://github.com/rapsealk/gym-rimpac/workflows/Python%20application/badge.svg)
+![Python 3.8](https://img.shields.io/badge/Python-3.8-blue.svg?logo=python)
 
 ```python
 import gym
 import gym_rimpac
 
 env = gym.make('Rimpac-v0')
+# env = gym.make('Mock-Rimpac-v0')
 ```
