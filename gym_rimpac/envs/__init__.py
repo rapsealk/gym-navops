@@ -1,1 +1,1 @@
-from gym_rimpac.envs.rimpac_env import RimpacEnv, MockRimpacEnv    # noqa: F401
+from gym_rimpac.envs.rimpac_env import RimpacEnv    # noqa: F401

@@ -9,11 +9,7 @@ register(
         'worker_id': 0,
         'base_port': None,
         'seed': 0,
-        'no_graphics': False
+        'no_graphics': False,
+        'mock': False
     }
-)
-
-register(
-    id='Mock-Rimpac-v0',
-    entry_point='gym_rimpac.envs:MockRimpacEnv'
 )

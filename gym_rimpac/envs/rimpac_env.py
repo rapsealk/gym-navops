@@ -28,21 +28,35 @@ class RimpacEnv(gym.Env):
         worker_id=0,
         base_port=None,
         seed=0,
-        no_graphics=False
+        no_graphics=False,
+        mock=False
     ):
+        self._mock = mock
+
+        self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["action_space"]["shape"]))
+        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["observation_space"]["shape"]))
+
+        if mock:
+            self._n = 2
+            return
+
         try:
             file_name = os.environ['RIMPAC_PATH']
         except KeyError:
             raise Exception('Unable to find Rimpac.')
 
         self._env = UnityEnvironment(file_name, worker_id=worker_id, base_port=base_port, seed=seed, no_graphics=no_graphics)
-        self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["action_space"]["shape"]))
-        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["observation_space"]["shape"]))
 
         self.steps = []
         self.observation = []
 
     def step(self, action):
+        if self._mock:
+            obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
+            reward = np.zeros((self._n,))
+            done = np.random.normal(0, 1) > 0.8
+            return obs, reward, done, {'win': np.random.randint(0, 2)}
+
         done, info = False, {}
         for _ in range(SKIP_FRAMES):
             observation = self._update_environment_state()
@@ -79,6 +93,9 @@ class RimpacEnv(gym.Env):
         return observation, np.squeeze(reward), done, info
 
     def reset(self):
+        if self._mock:
+            return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
+
         self._env.reset()
         self.behavior_names = [name for name in self._env.behavior_specs.keys()]
         print('RimpacEnv.behavior_names:', self.behavior_names)
@@ -91,6 +108,9 @@ class RimpacEnv(gym.Env):
         pass
 
     def close(self):
+        if self._mock:
+            return
+
         self._env.close()
 
     @property
@@ -105,30 +125,3 @@ class RimpacEnv(gym.Env):
         self.steps = [self._env.get_steps(behavior_name=behavior) for behavior in self.behavior_names]
         self.observation = [Observation(*step) for step in self.steps]
         return np.array([obs.decision_steps.obs for obs in self.observation]).squeeze()
-
-
-class MockRimpacEnv(gym.Env):
-
-    def __init__(self, n=2):
-        self._n = n
-        self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["action_space"]["shape"]))
-        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["observation_space"]["shape"]))
-
-    def step(self, action):
-        obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
-        reward = np.zeros((self._n,))
-        return obs, reward, False, {}
-
-    def reset(self):
-        return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
-
-    def close(self):
-        pass
-
-    @property
-    def action_space(self):
-        return self._action_space
-
-    @property
-    def observation_space(self):
-        return self._observation_space
