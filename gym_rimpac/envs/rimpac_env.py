@@ -116,7 +116,8 @@ class MockRimpacEnv(gym.Env):
 
     def step(self, action):
         obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
-        return obs, 0, False, {}
+        reward = np.zeros((self._n,))
+        return obs, reward, False, {}
 
     def reset(self):
         return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
