@@ -1,8 +1,8 @@
 {
     "observation_space": {
-        "shape": [61]
+        "shape": [51]
     },
     "action_space": {
-        "shape": [20]
+        "shape": [8]
     }
 }

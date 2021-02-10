@@ -14,7 +14,7 @@ class TestRimpacEnvironment(unittest.TestCase):
         self._n = 2
         self._env = gym.make('Rimpac-v0')
         self._env.reset()
-        self._mock = gym.make('Mock-Rimpac-v0')
+        self._mock = gym.make('Rimpac-v0', mock=True)
 
     def test_environment_space(self):
         self.assertEqual(
