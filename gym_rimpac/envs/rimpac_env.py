@@ -1,8 +1,10 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 import os
+import sys
 import json
 from collections import namedtuple
+from urllib import request
 
 import numpy as np
 import gym
@@ -17,6 +19,25 @@ with open(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')) as
     config = json.loads(config)
 
 SKIP_FRAMES = 4
+
+
+def get_build_dist(platform):
+    dist = {
+        "win32": "Windows",
+        "linux": "Linux",
+        "darwin": "MacOS"
+    }
+    return dist.get(platform, None)
+
+
+def _build_download_hook(url: str):
+    block_size = 0  # Enclosing
+
+    def download_hook(blocknum, bs, size):
+        nonlocal block_size
+        block_size += bs
+        print(f'\rDownload {url}: ({block_size / size * 100:.2f}%)', end='')
+    return download_hook
 
 
 class RimpacEnv(gym.Env):
@@ -39,6 +60,16 @@ class RimpacEnv(gym.Env):
         if mock:
             self._n = 2
             return
+
+        build_dir_path = os.path.join(os.path.dirname(__file__), 'Rimpac')
+        if not os.path.exists(build_dir_path):
+            os.mkdir(build_dir_path)
+        build_path = os.path.join(build_dir_path, 'Rimpac-v0')
+        if not os.path.exists(build_path):
+            dist = get_build_dist(sys.platform)
+            url = f'https://github.com/rapsealk/gym-rimpac/releases/download/v0.1.0/Rimpac-{dist}-x86_64.2019.4.20f1.zip'
+            request.urlretrieve(url, build_path, reporthook=_build_download_hook(url))
+            os.environ['RIMPAC_PATH'] = build_path
 
         try:
             file_name = os.environ['RIMPAC_PATH']
