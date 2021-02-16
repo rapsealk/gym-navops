@@ -51,7 +51,8 @@ class RimpacEnv(gym.Env):
         base_port=None,
         seed=0,
         no_graphics=False,
-        mock=False
+        mock=False,
+        _discrete=False
     ):
         self._mock = mock
 
@@ -65,7 +66,7 @@ class RimpacEnv(gym.Env):
         build_dir_path = os.path.join(os.path.dirname(__file__), 'Rimpac')
         if not os.path.exists(build_dir_path):
             os.mkdir(build_dir_path)
-        build_name = 'Rimpac'
+        build_name = 'RimpacDiscrete' if _discrete else 'Rimpac'
         build_path = os.path.join(build_dir_path, f'{build_name}-v0')
         download_path = build_path + '.zip'
         if not os.path.exists(build_path):

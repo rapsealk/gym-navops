@@ -10,6 +10,20 @@ register(
         'base_port': None,
         'seed': 0,
         'no_graphics': False,
-        'mock': False
+        'mock': False,
+        '_discrete': False
+    }
+)
+
+register(
+    id='RimpacDiscrete-v0',
+    entry_point='gym_rimpac.envs:RimpacEnv',
+    kwargs={
+        'worker_id': 0,
+        'base_port': None,
+        'seed': 0,
+        'no_graphics': False,
+        'mock': False,
+        '_discrete': True
     }
 )
