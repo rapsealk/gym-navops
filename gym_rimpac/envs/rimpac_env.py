@@ -56,8 +56,11 @@ class RimpacEnv(gym.Env):
     ):
         self._mock = mock
 
-        self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["action_space"]["shape"]))
-        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["observation_space"]["shape"]))
+        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
+        if _discrete:
+            self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
+        else:
+            self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
 
         if mock:
             self._n = 2
