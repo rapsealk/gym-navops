@@ -55,6 +55,7 @@ class RimpacEnv(gym.Env):
         _discrete=False
     ):
         self._mock = mock
+        self._discrete = _discrete
 
         self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
         if _discrete:
@@ -107,14 +108,19 @@ class RimpacEnv(gym.Env):
                     done = True
                     break
                 for i, behavior_name in enumerate(self.behavior_names):
-                    if not done:
-                        continuous_action = ActionTuple()
-                        action_ = action[i][np.newaxis, :]
-                        continuous_action.add_continuous(action_)
+                    if self._discrete:
+                        discrete_action = ActionTuple()
+                        discrete_action.add_discrete(np.array([action[i]])[np.newaxis, :])
+                        self._env.set_actions(behavior_name, discrete_action)
                     else:
-                        continuous_action = ActionTuple()
-                        continuous_action.add_continuous(np.zeros((0, 6)))
-                    self._env.set_actions(behavior_name, continuous_action)
+                        if not done:
+                            continuous_action = ActionTuple()
+                            action_ = action[i][np.newaxis, :]
+                            continuous_action.add_continuous(action_)
+                        else:
+                            continuous_action = ActionTuple()
+                            continuous_action.add_continuous(np.zeros((0, 6)))
+                        self._env.set_actions(behavior_name, continuous_action)
             if done:
                 break
         if done:
