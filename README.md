@@ -8,4 +8,15 @@ import gym_rimpac
 
 env = gym.make('Rimpac-v0')
 env = gym.make('RimpacDiscrete-v0')
+
+# For more details..
+env = gym.make(
+    'Rimpac[Discrete]-v0',
+    worker_id=0,
+    base_port=None,
+    seed=0,
+    no_graphics=False,
+    mock=False,
+    _discrete=True
+)
 ```
