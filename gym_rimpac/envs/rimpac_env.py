@@ -104,7 +104,10 @@ class RimpacEnv(gym.Env):
             observation = self._update_environment_state()
             for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
                 if terminal_steps.reward.shape[0] > 0:
-                    info['win'] = team_id if terminal_steps.reward[0] > 0 else (1 - team_id)
+                    if np.all(terminal_steps.reward < 0):
+                        info['win'] = -1
+                    else:
+                        info['win'] = team_id if terminal_steps.reward[0] > 0 else (1 - team_id)
                     done = True
                     break
                 for i, behavior_name in enumerate(self.behavior_names):
