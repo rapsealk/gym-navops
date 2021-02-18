@@ -80,7 +80,11 @@ class RimpacEnv(gym.Env):
                 if not os.path.exists(download_path):
                     dist = get_build_dist(sys.platform)
                     url = f'https://github.com/rapsealk/gym-rimpac/releases/download/v0.1.0/{build_name}-{dist}-x86_64.2019.4.20f1.zip'
-                    request.urlretrieve(url, download_path, reporthook=_build_download_hook(url))
+                    try:
+                        request.urlretrieve(url, download_path, reporthook=_build_download_hook(url))
+                    except KeyboardInterrupt:
+                        if os.path.exists(download_path):
+                            os.remove(download_path)
                 with zipfile.ZipFile(download_path) as unzip:
                     unzip.extractall(build_path)
         os.environ['RIMPAC_PATH'] = build_path
