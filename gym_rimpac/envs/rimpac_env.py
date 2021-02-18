@@ -96,6 +96,7 @@ class RimpacEnv(gym.Env):
         self.observation = []
 
     def step(self, action):
+        action[action == 0] = 1     # Replace "NOOP" to anything else..
         if self._mock:
             obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
             reward = np.zeros((self._n,))
