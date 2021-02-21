@@ -73,10 +73,11 @@ class RimpacEnv(gym.Env):
         self._mock = mock
         self._discrete = _discrete
 
-        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
         if _discrete:
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
         else:
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
 
         if mock:
@@ -195,6 +196,7 @@ class RimpacEnv(gym.Env):
         return self._process_observation(obs)
 
     def _process_observation(self, obs):
+        """
         obs[1][0:2] *= -1  # position
         obs[1][2:4] *= -1  # rotation
         obs[1][4:6] *= -1  # relative position
@@ -207,4 +209,5 @@ class RimpacEnv(gym.Env):
             np.delete(obs[1], torpedo_fields)
         ])
         # assert obs.shape[-1] == config[self._build_name]["observation"]["shape"][0]
+        """
         return obs
