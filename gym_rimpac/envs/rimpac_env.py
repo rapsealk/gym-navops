@@ -5,6 +5,7 @@ import sys
 import json
 import zipfile
 from collections import namedtuple
+from datetime import datetime
 from multiprocessing import Lock
 from urllib import request
 
@@ -32,14 +33,27 @@ def get_build_dist(platform):
     return dist.get(platform, None)
 
 
-def _build_download_hook(url: str):
-    block_size = 0  # Enclosing
+class RimpacDownloader:
 
-    def download_hook(blocknum, bs, size):
-        nonlocal block_size
-        block_size += bs
-        print(f'\rDownload {url}: ({block_size / size * 100:.2f}%)', end='')
-    return download_hook
+    def download(self, build_name: str, path: str):
+        dist = get_build_dist(sys.platform)
+        url = f'https://github.com/rapsealk/gym-rimpac/releases/download/v0.1.0/{build_name}-{dist}-x86_64.2019.4.20f1.zip'
+        try:
+            request.urlretrieve(url, path, reporthook=self._build_download_hook(url))
+        except KeyboardInterrupt:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def _build_download_hook(self, url: str):
+        block_size = 0  # Enclosing
+
+        def download_hook(blocknum, bs, size):
+            nonlocal block_size
+            block_size += bs
+            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}%')
+            if block_size == size:
+                sys.stdout.write('\n')
+        return download_hook
 
 
 class RimpacEnv(gym.Env):
@@ -78,13 +92,7 @@ class RimpacEnv(gym.Env):
             if not os.path.exists(build_path):
                 download_path = build_path + '.zip'
                 if not os.path.exists(download_path):
-                    dist = get_build_dist(sys.platform)
-                    url = f'https://github.com/rapsealk/gym-rimpac/releases/download/v0.1.0/{build_name}-{dist}-x86_64.2019.4.20f1.zip'
-                    try:
-                        request.urlretrieve(url, download_path, reporthook=_build_download_hook(url))
-                    except KeyboardInterrupt:
-                        if os.path.exists(download_path):
-                            os.remove(download_path)
+                    RimpacDownloader().download(build_name, download_path)
                 with zipfile.ZipFile(download_path) as unzip:
                     unzip.extractall(build_path)
         os.environ['RIMPAC_PATH'] = build_path
@@ -95,6 +103,7 @@ class RimpacEnv(gym.Env):
             raise Exception('Unable to find Rimpac.')
 
         self._env = UnityEnvironment(file_name, worker_id=worker_id, base_port=base_port, seed=seed, no_graphics=no_graphics)
+        self._build_name = build_name
 
         self.steps = []
         self.observation = []
@@ -156,7 +165,7 @@ class RimpacEnv(gym.Env):
 
         self._env.reset()
         self.behavior_names = [name for name in self._env.behavior_specs.keys()]
-        print('RimpacEnv.behavior_names:', self.behavior_names)
+        print(f'[{datetime.now().isoformat()}] RimpacEnv.behavior_names: {self.behavior_names}')
 
         observation = self._update_environment_state()
 
@@ -182,4 +191,20 @@ class RimpacEnv(gym.Env):
     def _update_environment_state(self):
         self.steps = [self._env.get_steps(behavior_name=behavior) for behavior in self.behavior_names]
         self.observation = [Observation(*step) for step in self.steps]
-        return np.array([obs.decision_steps.obs for obs in self.observation]).squeeze()
+        obs = np.array([obs.decision_steps.obs for obs in self.observation]).squeeze()
+        return self._process_observation(obs)
+
+    def _process_observation(self, obs):
+        obs[1][0:2] *= -1  # position
+        obs[1][2:4] *= -1  # rotation
+        obs[1][4:6] *= -1  # relative position
+        obs[1][6:8] *= -1  # target rotation
+
+        # delete torpedo fields
+        torpedo_fields = [8, 9, 10, 47, 48]
+        obs = np.array([
+            np.delete(obs[0], torpedo_fields),
+            np.delete(obs[1], torpedo_fields)
+        ])
+        # assert obs.shape[-1] == config[self._build_name]["observation"]["shape"][0]
+        return obs

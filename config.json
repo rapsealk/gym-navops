@@ -1,7 +1,7 @@
 {
     "Rimpac": {
         "observation_space": {
-            "shape": [53]
+            "shape": [48]
         },
         "action_space": {
             "shape": [8]
@@ -9,7 +9,7 @@
     },
     "RimpacDiscrete": {
         "observation_space": {
-            "shape": [53]
+            "shape": [48]
         },
         "action_space": {
             "n": 11
