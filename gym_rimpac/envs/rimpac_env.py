@@ -120,14 +120,11 @@ class RimpacEnv(gym.Env):
         done, info = False, {}
         for _ in range(SKIP_FRAMES):
             observation = self._update_environment_state()
+            terminal_rewards = np.zeros((len(self.steps),))
             for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
                 if terminal_steps.reward.shape[0] > 0:
-                    if np.all(terminal_steps.reward < 0):
-                        info['win'] = -1
-                    else:
-                        info['win'] = team_id if terminal_steps.reward[0] > 0 else (1 - team_id)
-                    done = True
-                    break
+                    terminal_rewards[team_id] = terminal_steps.reward[0]
+                    continue
                 for i, behavior_name in enumerate(self.behavior_names):
                     if self._discrete:
                         discrete_action = ActionTuple()
@@ -142,7 +139,15 @@ class RimpacEnv(gym.Env):
                             continuous_action = ActionTuple()
                             continuous_action.add_continuous(np.zeros((0, 6)))
                         self._env.set_actions(behavior_name, continuous_action)
-            if done:
+            if np.any(terminal_rewards != 0):
+                print(f'[RimpacDiscrete] TerminalRewards: {terminal_rewards}')
+                done = True
+                if terminal_rewards[0] == 1 and terminal_rewards[1] == -1:
+                    info['win'] = 0
+                elif terminal_rewards[0] == -1 and terminal_rewards[1] == 1:
+                    info['win'] = 1
+                else:
+                    info['win'] = -1
                 break
         if done:
             if 0 in observation.shape:
