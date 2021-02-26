@@ -50,7 +50,7 @@ class RimpacDownloader:
         def download_hook(blocknum, bs, size):
             nonlocal block_size
             block_size += bs
-            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}%')
+            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}%' )
             if block_size == size:
                 sys.stdout.write('\n')
         return download_hook

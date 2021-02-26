@@ -9,7 +9,7 @@
     },
     "RimpacDiscrete": {
         "observation_space": {
-            "shape": [54]
+            "shape": [64]
         },
         "action_space": {
             "n": 6
