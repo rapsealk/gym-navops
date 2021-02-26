@@ -119,6 +119,9 @@ class RimpacEnv(gym.Env):
 
         done, info = False, {}
         for _ in range(SKIP_FRAMES):
+            if _ > 0: # Adjust action only for the first of <SKIP_FRAMES> frames
+                action[:] = 0
+                action[:, 0] = 1
             observation = self._update_environment_state()
             terminal_rewards = np.zeros((len(self.steps),))
             for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
