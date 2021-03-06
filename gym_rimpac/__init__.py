@@ -10,6 +10,7 @@ register(
         'base_port': None,
         'seed': 0,
         'no_graphics': False,
+        'override_path': None,
         'mock': False,
         '_discrete': False
     }
@@ -23,6 +24,7 @@ register(
         'base_port': None,
         'seed': 0,
         'no_graphics': False,
+        'override_path': None,
         'mock': False,
         '_discrete': True
     }

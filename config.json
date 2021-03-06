@@ -9,10 +9,10 @@
     },
     "RimpacDiscrete": {
         "observation_space": {
-            "shape": [64]
+            "shape": [75]
         },
         "action_space": {
-            "n": 6
+            "n": 10
         }
     }
 }
