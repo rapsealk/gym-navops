@@ -50,7 +50,7 @@ class RimpacDownloader:
         def download_hook(blocknum, bs, size):
             nonlocal block_size
             block_size += bs
-            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}% ')
+            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}%) ')
             if block_size == size:
                 sys.stdout.write('\n')
         return download_hook
@@ -143,12 +143,12 @@ class RimpacEnv(gym.Env):
             if np.any(terminal_rewards == -1.0):
                 print(f'[RimpacDiscrete] TerminalRewards: {terminal_rewards}')
                 done = True
-                if terminal_rewards[0] == 1.0 and terminal_rewards[1] == -1.0:
-                    info['win'] = 0
-                elif terminal_rewards[0] == -1.0 and terminal_rewards[1] == 1.0:
+                if np.all(terminal_rewards == -1.0):
+                    info['win'] = -1
+                elif terminal_rewards[0] == -1.0:
                     info['win'] = 1
                 else:
-                    info['win'] = -1
+                    info['win'] = 0
                 break
         if done:
             if 0 in observation.shape:
