@@ -21,7 +21,7 @@ with open(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')) as
     config = ''.join(f.readlines())
     config = json.loads(config)
 
-SKIP_FRAMES = 4
+# SKIP_FRAMES = 4
 
 
 def get_build_dist(platform):
@@ -113,7 +113,36 @@ class RimpacEnv(gym.Env):
             done = np.random.normal(0, 1) > 0.8
             return obs, reward, done, {'win': np.random.randint(0, 2)}
 
-        done, info = False, {}
+        done, info = False, {'win': -1}
+
+        observation = self._update_environment_state()
+        decision_rewards = np.zeros((self._n,))
+        terminal_rewards = np.zeros((self._n,))
+        for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
+            if terminal_steps.reward.shape[0] > 0:
+                done = True
+                terminal_rewards[team_id] = terminal_steps.reward[0]
+                continue
+            else:
+                decision_rewards[team_id] = decision_steps.reward[0]
+
+            for i, behavior_name in enumerate(self.behavior_names):
+                action_tuple = ActionTuple()
+                if self._discrete:
+                    action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
+                else:
+                    action_tuple.add_continuous(action[i][np.newaxis, :])
+                self._env.set_actions(behavior_name, action_tuple)
+
+        if done:
+            print(f'[gym-rimpac] TerminalRewards: {terminal_rewards}')
+            for i, terminal_reward in enumerate(terminal_rewards):
+                if terminal_reward == 1.0:
+                    info['win'] = i
+                    break
+            self._env.step()
+
+        """
         decision_rewards = np.zeros((self._n,))
         for frame in range(SKIP_FRAMES):
             #if frame > 0:
@@ -150,6 +179,8 @@ class RimpacEnv(gym.Env):
                 else:
                     info['win'] = 0
                 break
+        """
+
         if done:
             if 0 in observation.shape:
                 observation = self.observation_cache
