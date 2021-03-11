@@ -35,7 +35,7 @@ def get_build_dist(platform):
 
 class RimpacDownloader:
 
-    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2019.4.21f1'):
+    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2019.4.22f1'):
         dist = get_build_dist(sys.platform)
         url = f'https://github.com/rapsealk/gym-rimpac/releases/download/{version}/{build_name}-{dist}-x86_64.{unity_version}.zip'
         try:
