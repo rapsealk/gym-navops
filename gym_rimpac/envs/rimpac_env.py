@@ -21,8 +21,6 @@ with open(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')) as
     config = ''.join(f.readlines())
     config = json.loads(config)
 
-# SKIP_FRAMES = 4
-
 
 def get_build_dist(platform):
     dist = {
@@ -69,14 +67,19 @@ class RimpacEnv(gym.Env):
         no_graphics=False,
         override_path=None,
         mock=False,
-        _discrete=False
+        _discrete=False,
+        _skip_frame=False
     ):
         self._mock = mock
         self._discrete = _discrete
 
         if _discrete:
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
+            if _skip_frame:
+                self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscreteSkipFrame"]["observation_space"]["shape"]))
+                self._action_space = gym.spaces.Discrete(config["RimpacDiscreteSkipFrame"]["action_space"]["n"])
+            else:
+                self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
+                self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
         else:
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
@@ -92,6 +95,8 @@ class RimpacEnv(gym.Env):
             if not os.path.exists(build_dir_path):
                 os.mkdir(build_dir_path)
             build_name = 'RimpacDiscrete' if _discrete else 'Rimpac'
+            if _skip_frame:
+                build_name += 'SkipFrame'
             build_path = os.path.join(build_dir_path, f'{build_name}-v0')
             with self.__lock:
                 if not os.path.exists(build_path):
@@ -135,7 +140,6 @@ class RimpacEnv(gym.Env):
                 self._env.set_actions(behavior_name, action_tuple)
 
         if done:
-            print(f'[gym-rimpac] TerminalRewards: {terminal_rewards}')
             for i, terminal_reward in enumerate(terminal_rewards):
                 if terminal_reward == 1.0:
                     info['win'] = i
@@ -185,6 +189,8 @@ class RimpacEnv(gym.Env):
             if 0 in observation.shape:
                 observation = self.observation_cache
             reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
+            reward *= 10
+            print(f'[gym-rimpac] TerminalRewards: {reward}')
         else:
             self._env.step()
             observation = self._update_environment_state()

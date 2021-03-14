@@ -14,5 +14,13 @@
         "action_space": {
             "n": 10
         }
+    },
+    "RimpacDiscreteSkipFrame": {
+        "observation_space": {
+            "shape": [65]
+        },
+        "action_space": {
+            "n": 10
+        }
     }
 }
