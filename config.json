@@ -12,7 +12,7 @@
             "shape": [75]
         },
         "action_space": {
-            "n": 10
+            "n": [5, 6]
         }
     },
     "RimpacDiscreteSkipFrame": {

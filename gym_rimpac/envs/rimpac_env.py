@@ -79,7 +79,7 @@ class RimpacEnv(gym.Env):
                 self._action_space = gym.spaces.Discrete(config["RimpacDiscreteSkipFrame"]["action_space"]["n"])
             else:
                 self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
-                self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
+                self._action_space = gym.spaces.MultiDiscrete(config["RimpacDiscrete"]["action_space"]["n"])
         else:
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
@@ -134,7 +134,7 @@ class RimpacEnv(gym.Env):
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
                 if self._discrete:
-                    action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
+                    action_tuple.add_discrete(np.array([action[i]]))
                 else:
                     action_tuple.add_continuous(action[i][np.newaxis, :])
                 self._env.set_actions(behavior_name, action_tuple)
