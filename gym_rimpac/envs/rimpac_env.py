@@ -67,22 +67,20 @@ class RimpacEnv(gym.Env):
         no_graphics=False,
         override_path=None,
         mock=False,
-        _discrete=False,
-        _skip_frame=False
+        _type='Rimpac'
     ):
         self._mock = mock
-        self._discrete = _discrete
+        self._type = _type
 
-        if _discrete:
-            if _skip_frame:
-                self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscreteSkipFrame"]["observation_space"]["shape"]))
-                self._action_space = gym.spaces.Discrete(config["RimpacDiscreteSkipFrame"]["action_space"]["n"])
-            else:
-                self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
-                self._action_space = gym.spaces.MultiDiscrete(config["RimpacDiscrete"]["action_space"]["n"])
-        else:
+        if _type == 'Rimpac':
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
+        elif _type == 'RimpacDiscrete':
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
+            self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
+        elif _type == 'RimpacMultiDiscrete':
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacMultiDiscrete"]["observation_space"]["shape"]))
+            self._action_space = gym.spaces.MultiDiscrete(config["RimpacMultiDiscrete"]["action_space"]["nvec"])
 
         self._n = 2
         if mock:
@@ -133,10 +131,12 @@ class RimpacEnv(gym.Env):
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
-                if self._discrete:
-                    action_tuple.add_discrete(np.array([action[i]]))
-                else:
+                if self._type == 'Rimpac':
                     action_tuple.add_continuous(action[i][np.newaxis, :])
+                elif self._type == 'RimpacDiscrete':
+                    action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
+                elif self._type == 'RimpacMultiDiscrete':
+                    action_tuple.add_discrete(np.array([action[i]]))
                 self._env.set_actions(behavior_name, action_tuple)
 
         if done:
@@ -146,50 +146,10 @@ class RimpacEnv(gym.Env):
                     break
             self._env.step()
 
-        """
-        decision_rewards = np.zeros((self._n,))
-        for frame in range(SKIP_FRAMES):
-            #if frame > 0:
-            #    action[:] = 0
-            observation = self._update_environment_state()
-            terminal_rewards = np.zeros((len(self.steps),))
-            for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
-                if terminal_steps.reward.shape[0] > 0:
-                    terminal_rewards[team_id] = terminal_steps.reward[0]
-                    continue
-                else:
-                    decision_rewards[team_id] += decision_steps.reward[0]
-                for i, behavior_name in enumerate(self.behavior_names):
-                    if self._discrete:
-                        discrete_action = ActionTuple()
-                        discrete_action.add_discrete(np.array([action[i]])[np.newaxis, :])
-                        self._env.set_actions(behavior_name, discrete_action)
-                    else:
-                        if not done:
-                            continuous_action = ActionTuple()
-                            action_ = action[i][np.newaxis, :]
-                            continuous_action.add_continuous(action_)
-                        else:
-                            continuous_action = ActionTuple()
-                            continuous_action.add_continuous(np.zeros((0, 6)))
-                        self._env.set_actions(behavior_name, continuous_action)
-            if np.any(terminal_rewards == -1.0):
-                print(f'[RimpacDiscrete] TerminalRewards: {terminal_rewards}')
-                done = True
-                if np.all(terminal_rewards == -1.0):
-                    info['win'] = -1
-                elif terminal_rewards[0] == -1.0:
-                    info['win'] = 1
-                else:
-                    info['win'] = 0
-                break
-        """
-
         if done:
             if 0 in observation.shape:
                 observation = self.observation_cache
             reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-            reward *= 10
             print(f'[gym-rimpac] TerminalRewards: {reward}')
         else:
             self._env.step()
