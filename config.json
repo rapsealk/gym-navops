@@ -15,12 +15,12 @@
             "n": 8
         }
     },
-    "RimpacDiscreteSkipFrame": {
+    "RimpacMultiDiscrete": {
         "observation_space": {
-            "shape": [65]
+            "shape": [70]
         },
         "action_space": {
-            "n": 10
+            "nvec": [5, 4]
         }
     }
 }
