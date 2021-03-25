@@ -31,11 +31,11 @@ def get_build_dist(platform):
     return dist.get(platform, None)
 
 
-class RimpacDownloader:
+class NavOpsDownloader:
 
-    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2020.3.0f1'):
+    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2020.3.1f1'):
         dist = get_build_dist(sys.platform)
-        url = f'https://github.com/rapsealk/gym-rimpac/releases/download/{version}/{build_name}-{dist}-x86_64.{unity_version}.zip'
+        url = f'https://github.com/rapsealk/gym-navops/releases/download/{version}/{build_name}-{dist}-x86_64.{unity_version}.zip'
         try:
             request.urlretrieve(url, path, reporthook=self._build_download_hook(url))
         except KeyboardInterrupt:
@@ -54,7 +54,7 @@ class RimpacDownloader:
         return download_hook
 
 
-class RimpacEnv(gym.Env):
+class NavOpsEnv(gym.Env):
 
     metadata = {'render.modes': ['human']}
     __lock = Lock()
@@ -67,20 +67,20 @@ class RimpacEnv(gym.Env):
         no_graphics=False,
         override_path=None,
         mock=False,
-        _build='Rimpac'
+        _build='NavOps'
     ):
         self._mock = mock
         self._build = _build
 
-        if _build == 'Rimpac':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
-        elif _build == 'RimpacDiscrete':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
-        elif _build == 'RimpacMultiDiscrete':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacMultiDiscrete"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.MultiDiscrete(config["RimpacMultiDiscrete"]["action_space"]["nvec"])
+        if _build == 'NavOps':
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOps"]["observation_space"]["shape"]))
+            self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOps"]["action_space"]["shape"]))
+        elif _build == 'NavOpsDiscrete':
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsDiscrete"]["observation_space"]["shape"]))
+            self._action_space = gym.spaces.Discrete(config["NavOpsDiscrete"]["action_space"]["n"])
+        elif _build == 'NavOpsMultiDiscrete':
+            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
+            self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
 
         self._n = 2
         if mock:
@@ -89,7 +89,7 @@ class RimpacEnv(gym.Env):
         if override_path:
             build_path = override_path
         else:
-            build_dir_path = os.path.join(os.path.dirname(__file__), 'Rimpac')
+            build_dir_path = os.path.join(os.path.dirname(__file__), 'NavOps')
             if not os.path.exists(build_dir_path):
                 os.mkdir(build_dir_path)
             build_path = os.path.join(build_dir_path, f'{self._build}-v0')
@@ -97,7 +97,7 @@ class RimpacEnv(gym.Env):
                 if not os.path.exists(build_path):
                     download_path = build_path + '.zip'
                     if not os.path.exists(download_path):
-                        RimpacDownloader().download(self._build, download_path)
+                        NavOpsDownloader().download(self._build, download_path)
                     with zipfile.ZipFile(download_path) as unzip:
                         unzip.extractall(build_path)
 
@@ -128,11 +128,11 @@ class RimpacEnv(gym.Env):
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
-                if self._build == 'Rimpac':
+                if self._build == 'NavOps':
                     action_tuple.add_continuous(action[i][np.newaxis, :])
-                elif self._build == 'RimpacDiscrete':
+                elif self._build == 'NavOpsDiscrete':
                     action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
-                elif self._build == 'RimpacMultiDiscrete':
+                elif self._build == 'NavOpsMultiDiscrete':
                     action_tuple.add_discrete(np.array([action[i]]))
                 self._env.set_actions(behavior_name, action_tuple)
 
@@ -147,7 +147,7 @@ class RimpacEnv(gym.Env):
             if 0 in observation.shape:
                 observation = self.observation_cache
             reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-            print(f'[gym-rimpac] TerminalRewards: {reward}')
+            print(f'[gym-navops] TerminalRewards: {reward}')
         else:
             self._env.step()
             observation = self._update_environment_state()
@@ -166,7 +166,7 @@ class RimpacEnv(gym.Env):
 
         self._env.reset()
         self.behavior_names = [name for name in self._env.behavior_specs.keys()]
-        print(f'[{datetime.now().isoformat()}] RimpacEnv.Reset() => behavior_names: {self.behavior_names}')
+        print(f'[{datetime.now().isoformat()}] NavOpsEnv.Reset() => behavior_names: {self.behavior_names}')
 
         observation = self._update_environment_state()
 

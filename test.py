@@ -5,16 +5,16 @@ import unittest
 import numpy as np
 
 import gym
-import gym_rimpac   # noqa: F401
+import gym_navops   # noqa: F401
 
 
-class TestRimpacEnvironment(unittest.TestCase):
+class TestNavOpsEnvironment(unittest.TestCase):
 
     def setUp(self):
         self._n = 2
-        self._env = gym.make('Rimpac-v0')
+        self._env = gym.make('NavOps-v0')
         self._env.reset()
-        self._mock = gym.make('Rimpac-v0', mock=True)
+        self._mock = gym.make('NavOps-v0', mock=True)
 
     def test_environment_space(self):
         self.assertEqual(

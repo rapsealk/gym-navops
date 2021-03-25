@@ -3,8 +3,8 @@
 from gym.envs.registration import register
 
 register(
-    id='Rimpac-v0',
-    entry_point='gym_rimpac.envs:RimpacEnv',
+    id='NavOps-v0',
+    entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
         'worker_id': 0,
         'base_port': None,
@@ -12,13 +12,13 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_build': 'Rimpac'
+        '_build': 'NavOps'
     }
 )
 
 register(
-    id='RimpacDiscrete-v0',
-    entry_point='gym_rimpac.envs:RimpacEnv',
+    id='NavOpsDiscrete-v0',
+    entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
         'worker_id': 0,
         'base_port': None,
@@ -26,13 +26,13 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_build': 'RimpacDiscrete'
+        '_build': 'NavOpsDiscrete'
     }
 )
 
 register(
-    id='RimpacMultiDiscrete-v0',
-    entry_point='gym_rimpac.envs:RimpacEnv',
+    id='NavOpsMultiDiscrete-v0',
+    entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
         'worker_id': 0,
         'base_port': None,
@@ -40,14 +40,14 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_build': 'RimpacMultiDiscrete'
+        '_build': 'NavOpsMultiDiscrete'
     }
 )
 
 """
 register(
-    id='RimpacDiscreteSkipFrame-v0',
-    entry_point='gym_rimpac.envs:RimpacEnv',
+    id='NavOpsDiscreteSkipFrame-v0',
+    entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
         'worker_id': 0,
         'base_port': None,

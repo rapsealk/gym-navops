@@ -7,13 +7,13 @@ from itertools import count
 import numpy as np
 
 import gym
-import gym_rimpac   # noqa: F401
+import gym_navops   # noqa: F401
 
 
 def main():
-    build_path = os.path.abspath(os.path.join('/', 'Users', 'rapsealk', 'Desktop', 'RimpacMultihead', 'Rimpac'))
-    # build_path = os.path.join(os.path.dirname(__file__), 'Rimpac')
-    env = gym.make('RimpacDiscrete-v0', override_path=build_path, no_graphics=True)
+    build_path = os.path.abspath(os.path.join('/', 'Users', 'rapsealk', 'Desktop', 'NavOpsMultihead', 'NavOps'))
+    # build_path = os.path.join(os.path.dirname(__file__), 'NavOps')
+    env = gym.make('NavOpsDiscrete-v0', override_path=build_path, no_graphics=True)
 
     for episode in count(1):
         observation = env.reset()
