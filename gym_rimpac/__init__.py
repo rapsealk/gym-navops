@@ -12,7 +12,7 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_type': 'Rimpac'
+        '_build': 'Rimpac'
     }
 )
 
@@ -26,7 +26,7 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_type': 'RimpacDiscrete'
+        '_build': 'RimpacDiscrete'
     }
 )
 
@@ -40,7 +40,7 @@ register(
         'no_graphics': False,
         'override_path': None,
         'mock': False,
-        '_type': 'RimpacMultiDiscrete'
+        '_build': 'RimpacMultiDiscrete'
     }
 )
 

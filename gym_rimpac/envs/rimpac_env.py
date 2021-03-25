@@ -67,18 +67,18 @@ class RimpacEnv(gym.Env):
         no_graphics=False,
         override_path=None,
         mock=False,
-        _type='Rimpac'
+        _build='Rimpac'
     ):
         self._mock = mock
-        self._type = _type
+        self._build = _build
 
-        if _type == 'Rimpac':
+        if _build == 'Rimpac':
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["Rimpac"]["action_space"]["shape"]))
-        elif _type == 'RimpacDiscrete':
+        elif _build == 'RimpacDiscrete':
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacDiscrete"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.Discrete(config["RimpacDiscrete"]["action_space"]["n"])
-        elif _type == 'RimpacMultiDiscrete':
+        elif _build == 'RimpacMultiDiscrete':
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["RimpacMultiDiscrete"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.MultiDiscrete(config["RimpacMultiDiscrete"]["action_space"]["nvec"])
 
@@ -92,15 +92,12 @@ class RimpacEnv(gym.Env):
             build_dir_path = os.path.join(os.path.dirname(__file__), 'Rimpac')
             if not os.path.exists(build_dir_path):
                 os.mkdir(build_dir_path)
-            build_name = 'RimpacDiscrete' if _discrete else 'Rimpac'
-            if _skip_frame:
-                build_name += 'SkipFrame'
-            build_path = os.path.join(build_dir_path, f'{build_name}-v0')
+            build_path = os.path.join(build_dir_path, f'{self._build}-v0')
             with self.__lock:
                 if not os.path.exists(build_path):
                     download_path = build_path + '.zip'
                     if not os.path.exists(download_path):
-                        RimpacDownloader().download(build_name, download_path)
+                        RimpacDownloader().download(self._build, download_path)
                     with zipfile.ZipFile(download_path) as unzip:
                         unzip.extractall(build_path)
 
@@ -131,11 +128,11 @@ class RimpacEnv(gym.Env):
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
-                if self._type == 'Rimpac':
+                if self._build == 'Rimpac':
                     action_tuple.add_continuous(action[i][np.newaxis, :])
-                elif self._type == 'RimpacDiscrete':
+                elif self._build == 'RimpacDiscrete':
                     action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
-                elif self._type == 'RimpacMultiDiscrete':
+                elif self._build == 'RimpacMultiDiscrete':
                     action_tuple.add_discrete(np.array([action[i]]))
                 self._env.set_actions(behavior_name, action_tuple)
 
