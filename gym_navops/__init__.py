@@ -11,8 +11,8 @@ register(
         'seed': 0,
         'no_graphics': False,
         'override_path': None,
-        'mock': False,
-        '_build': 'NavOps'
+        '_build': 'NavOps',
+        '_n': 2
     }
 )
 
@@ -25,8 +25,8 @@ register(
         'seed': 0,
         'no_graphics': False,
         'override_path': None,
-        'mock': False,
-        '_build': 'NavOpsDiscrete'
+        '_build': 'NavOpsDiscrete',
+        '_n': 2
     }
 )
 
@@ -39,8 +39,22 @@ register(
         'seed': 0,
         'no_graphics': False,
         'override_path': None,
-        'mock': False,
-        '_build': 'NavOpsMultiDiscrete'
+        '_build': 'NavOpsMultiDiscrete',
+        '_n': 2
+    }
+)
+
+register(
+    id='NavOpsMultiDiscrete-v1',
+    entry_point='gym_navops.envs:NavOpsEnv',
+    kwargs={
+        'worker_id': 0,
+        'base_port': None,
+        'seed': 0,
+        'no_graphics': False,
+        'override_path': None,
+        '_build': 'NavOpsMultiDiscrete',
+        '_n': 1
     }
 )
 

@@ -66,10 +66,9 @@ class NavOpsEnv(gym.Env):
         seed=0,
         no_graphics=False,
         override_path=None,
-        mock=False,
-        _build='NavOps'
+        _build='NavOps',
+        _n=2
     ):
-        self._mock = mock
         self._build = _build
 
         if _build == 'NavOps':
@@ -82,9 +81,9 @@ class NavOpsEnv(gym.Env):
             self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
             self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
 
-        self._n = 2
-        if mock:
-            return
+        self._n = _n
+        if _n == 1:
+            _build += 'Single'
 
         if override_path:
             build_path = override_path
@@ -97,7 +96,7 @@ class NavOpsEnv(gym.Env):
                 if not os.path.exists(build_path):
                     download_path = build_path + '.zip'
                     if not os.path.exists(download_path):
-                        NavOpsDownloader().download(self._build, download_path)
+                        NavOpsDownloader().download(_build, download_path)
                     with zipfile.ZipFile(download_path) as unzip:
                         unzip.extractall(build_path)
 
@@ -107,12 +106,6 @@ class NavOpsEnv(gym.Env):
         self.observation = []
 
     def step(self, action):
-        if self._mock:
-            obs = np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
-            reward = np.zeros((self._n,))
-            done = np.random.normal(0, 1) > 0.8
-            return obs, reward, done, {'win': np.random.randint(0, 2)}
-
         done, info = False, {'win': -1}
 
         observation = self._update_environment_state()
@@ -158,27 +151,22 @@ class NavOpsEnv(gym.Env):
             if 0 in reward.shape:
                 reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
 
-        return observation, np.squeeze(reward), done, info
+        if (reward := np.squeeze(reward)).ndim == 0:
+            reward = np.expand_dims(reward, axis=0)
+
+        return observation, reward, done, info
 
     def reset(self):
-        if self._mock:
-            return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
-
         self._env.reset()
         self.behavior_names = [name for name in self._env.behavior_specs.keys()]
         print(f'[{datetime.now().isoformat()}] NavOpsEnv.Reset() => behavior_names: {self.behavior_names}')
 
-        observation = self._update_environment_state()
-
-        return observation
+        return self._update_environment_state()
 
     def render(self, mode='human', close=False):
         pass
 
     def close(self):
-        if self._mock:
-            return
-
         self._env.close()
 
     @property
@@ -192,5 +180,5 @@ class NavOpsEnv(gym.Env):
     def _update_environment_state(self):
         self.steps = [self._env.get_steps(behavior_name=behavior) for behavior in self.behavior_names]
         self.observation = [Observation(*step) for step in self.steps]
-        obs = np.array([obs.decision_steps.obs for obs in self.observation]).squeeze()
+        obs = np.array([obs.decision_steps.obs for obs in self.observation]).squeeze(0).squeeze(0) # .squeeze()
         return obs
