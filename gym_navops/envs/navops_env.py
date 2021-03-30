@@ -130,10 +130,15 @@ class NavOpsEnv(gym.Env):
                 self._env.set_actions(behavior_name, action_tuple)
 
         if done:
-            for i, terminal_reward in enumerate(terminal_rewards):
-                if terminal_reward == 1.0:
-                    info['win'] = i
-                    break
+            if self._n == 1:
+                if terminal_rewards[0] == 1.0: info['win'] = 0
+                elif terminal_rewards[0] == -1.0: info['win'] = 1
+                # elif terminal_rewards[0] == 0.0: info['win'] = -1
+            else:
+                for i, terminal_reward in enumerate(terminal_rewards):
+                    if terminal_reward == 1.0:
+                        info['win'] = i
+                        break
             self._env.step()
 
         if done:
