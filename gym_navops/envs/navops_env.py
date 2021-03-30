@@ -102,32 +102,19 @@ class NavOpsEnv(gym.Env):
 
         self._env = UnityEnvironment(build_path, worker_id=worker_id, base_port=base_port, seed=seed, no_graphics=no_graphics)
 
+        self._skip_frames = 4
+
         self.steps = []
         self.observation = []
 
     def step(self, action):
         done, info = False, {'win': -1}
 
-        observation = self._update_environment_state()
-        decision_rewards = np.zeros((self._n,))
-        terminal_rewards = np.zeros((self._n,))
-        for team_id, (decision_steps, terminal_steps) in enumerate(self.steps):
-            if terminal_steps.reward.shape[0] > 0:
-                done = True
-                terminal_rewards[team_id] = terminal_steps.reward[0]
-                continue
-            else:
-                decision_rewards[team_id] = decision_steps.reward[0]
-
-            for i, behavior_name in enumerate(self.behavior_names):
-                action_tuple = ActionTuple()
-                if self._build == 'NavOps':
-                    action_tuple.add_continuous(action[i][np.newaxis, :])
-                elif self._build == 'NavOpsDiscrete':
-                    action_tuple.add_discrete(np.array([action[i]])[np.newaxis, :])
-                elif self._build == 'NavOpsMultiDiscrete':
-                    action_tuple.add_discrete(np.array([action[i]]))
-                self._env.set_actions(behavior_name, action_tuple)
+        skip_frame_step = self._skip_frame(action)
+        for _ in range(self._skip_frames):
+            observation, done, terminal_rewards = next(skip_frame_step)
+            if done:
+                break
 
         if done:
             if self._n == 1:
@@ -173,6 +160,38 @@ class NavOpsEnv(gym.Env):
 
     def close(self):
         self._env.close()
+
+    def _skip_frame(self, action):
+        concat_actions = np.concatenate((
+            np.expand_dims(action, axis=0),
+            np.zeros((self._skip_frames-1,) + action.shape)
+        ))
+
+        for action in concat_actions:
+            print('[gym-navops] skip_frame.action:', action)
+            # 1 step 3 skips
+            yield self._step(action)
+
+    def _step(self, action):
+        observation = self._update_environment_state()
+        terminal_rewards = np.zeros((self._n,))
+        for team_id, (_, terminal_steps) in enumerate(self.steps):
+            if terminal_steps.reward.shape[0] > 0:
+                done = True
+                terminal_rewards[team_id] = terminal_steps.reward[0]
+                continue
+
+            for i, behavior_name in enumerate(self.behavior_names):
+                action_tuple = ActionTuple()
+                if self._build == 'NavOps':
+                    action_tuple.add_continuous(action[i][np.newaxis, :])
+                elif self._build == 'NavOpsDiscrete':
+                    action_tuple.add_discrete(np.expand_dims([action[i]], axis=0))
+                elif self._build == 'NavOpsMultiDiscrete':
+                    action_tuple.add_discrete(np.array([action[i]]))
+                self._env.set_actions(behavior_name, action_tuple)
+
+        return observation, done, terminal_rewards
 
     @property
     def action_space(self):
