@@ -174,6 +174,7 @@ class NavOpsEnv(gym.Env):
 
     def _step(self, action):
         observation = self._update_environment_state()
+        done = False
         terminal_rewards = np.zeros((self._n,))
         for team_id, (_, terminal_steps) in enumerate(self.steps):
             if terminal_steps.reward.shape[0] > 0:
@@ -188,8 +189,10 @@ class NavOpsEnv(gym.Env):
                 elif self._build == 'NavOpsDiscrete':
                     action_tuple.add_discrete(np.expand_dims([action[i]], axis=0))
                 elif self._build == 'NavOpsMultiDiscrete':
-                    action_tuple.add_discrete(np.array([action[i]]))
+                    action_tuple.add_discrete(np.asarray([action[i]]))
                 self._env.set_actions(behavior_name, action_tuple)
+
+        self._env.step()
 
         return observation, done, terminal_rewards
 
