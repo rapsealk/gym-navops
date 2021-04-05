@@ -67,7 +67,8 @@ class NavOpsEnv(gym.Env):
         no_graphics=False,
         override_path=None,
         _build='NavOps',
-        _n=2
+        _n=2,
+        _group=False
     ):
         self._build = _build
 
@@ -84,6 +85,7 @@ class NavOpsEnv(gym.Env):
         self._n = _n
         if _n == 1:
             _build += 'Single'
+        self._group = _group
 
         if override_path:
             build_path = override_path
@@ -117,22 +119,32 @@ class NavOpsEnv(gym.Env):
                 break
 
         if done:
+            """
             if self._n == 1:
-                if terminal_rewards[0] == 1.0: info['win'] = 0
-                elif terminal_rewards[0] == -1.0: info['win'] = 1
+                if np.any(terminal_rewards[0] == 1.0): info['win'] = 0
+                elif np.any(terminal_rewards[0] == -1.0): info['win'] = 1
                 # elif terminal_rewards[0] == 0.0: info['win'] = -1
             else:
                 for i, terminal_reward in enumerate(terminal_rewards):
-                    if terminal_reward == 1.0:
+                    if np.any(terminal_reward) == 1.0:
                         info['win'] = i
                         break
-            self._env.step()
+            """
 
-        if done:
+            self._env.step()
             if 0 in observation.shape:
                 observation = self.observation_cache
-            reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-            print(f'[gym-navops] TerminalRewards: {reward}')
+            if self._group:
+                reward = np.array([obs.terminal_steps.group_reward for obs in self.observation]).squeeze()
+            else:
+                reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
+            print(f'[gym-navops] TerminalRewards: {terminal_rewards}')
+            print(f'[gym-navops] EpisodeRewards: {reward}')
+
+            if np.any(reward == 1.0): info['win'] = 0
+            elif np.any(reward == -1.0): info['win'] = 1
+            print(f'[gym-navops] win: {info["win"]}')
+
         else:
             self._env.step()
             observation = self._update_environment_state()
@@ -168,8 +180,6 @@ class NavOpsEnv(gym.Env):
         ))
 
         for action in concat_actions:
-            print('[gym-navops] skip_frame.action:', action)
-            # 1 step 3 skips
             yield self._step(action)
 
     def _step(self, action):
@@ -177,10 +187,17 @@ class NavOpsEnv(gym.Env):
         done = False
         terminal_rewards = np.zeros((self._n,))
         for team_id, (_, terminal_steps) in enumerate(self.steps):
+            # """
             if terminal_steps.reward.shape[0] > 0:
                 done = True
-                terminal_rewards[team_id] = terminal_steps.reward[0]
+                terminal_rewards[team_id] = terminal_steps.reward[0]    # FIXME: GroupReward
                 continue
+            """
+            if terminal_steps.group_reward.shape[0] > 0:
+                done = True
+                terminal_rewards[team_id] = terminal_rewards.group_reward[0]
+                continue
+            """
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
@@ -189,7 +206,10 @@ class NavOpsEnv(gym.Env):
                 elif self._build == 'NavOpsDiscrete':
                     action_tuple.add_discrete(np.expand_dims([action[i]], axis=0))
                 elif self._build == 'NavOpsMultiDiscrete':
-                    action_tuple.add_discrete(np.asarray([action[i]]))
+                    if action[i].ndim == 1:
+                        action_tuple.add_discrete(np.expand_dims(action[i], axis=0))
+                    elif action[i].ndim == 2:
+                        action_tuple.add_discrete(np.asarray(action[i]))
                 self._env.set_actions(behavior_name, action_tuple)
 
         self._env.step()

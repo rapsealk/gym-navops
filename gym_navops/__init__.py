@@ -12,7 +12,8 @@ register(
         'no_graphics': False,
         'override_path': None,
         '_build': 'NavOps',
-        '_n': 2
+        '_n': 2,
+        '_group': False
     }
 )
 
@@ -26,7 +27,8 @@ register(
         'no_graphics': False,
         'override_path': None,
         '_build': 'NavOpsDiscrete',
-        '_n': 2
+        '_n': 2,
+        '_group': False
     }
 )
 
@@ -40,7 +42,8 @@ register(
         'no_graphics': False,
         'override_path': None,
         '_build': 'NavOpsMultiDiscrete',
-        '_n': 2
+        '_n': 2,
+        '_group': False
     }
 )
 
@@ -54,7 +57,23 @@ register(
         'no_graphics': False,
         'override_path': None,
         '_build': 'NavOpsMultiDiscrete',
-        '_n': 1
+        '_n': 1,
+        '_group': False
+    }
+)
+
+register(
+    id='NavOpsMultiDiscrete-v2',
+    entry_point='gym_navops.envs:NavOpsEnv',
+    kwargs={
+        'worker_id': 0,
+        'base_port': None,
+        'seed': 0,
+        'no_graphics': False,
+        'override_path': None,
+        '_build': 'NavOpsMultiDiscrete',
+        '_n': 3,
+        '_group': True
     }
 )
 
