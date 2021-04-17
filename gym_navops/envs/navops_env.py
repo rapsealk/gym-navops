@@ -33,7 +33,7 @@ def get_build_dist(platform):
 
 class NavOpsDownloader:
 
-    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2020.3.1f1'):
+    def download(self, build_name: str, path: str, version='v0.1.0', unity_version='2020.3.4f1'):
         dist = get_build_dist(sys.platform)
         url = f'https://github.com/rapsealk/gym-navops/releases/download/{version}/{build_name}-{dist}-x86_64.{unity_version}.zip'
         try:
@@ -48,7 +48,7 @@ class NavOpsDownloader:
         def download_hook(blocknum, bs, size):
             nonlocal block_size
             block_size += bs
-            sys.stdout.write(f'\rDownload {url}: ({block_size / size * 100:.2f}%) ')
+            sys.stdout.write(f'\rDownload {url}: ({min(100, block_size / size * 100):.2f}%)')
             if block_size == size:
                 sys.stdout.write('\n')
         return download_hook
@@ -206,10 +206,13 @@ class NavOpsEnv(gym.Env):
                 elif self._build == 'NavOpsDiscrete':
                     action_tuple.add_discrete(np.expand_dims([action[i]], axis=0))
                 elif self._build == 'NavOpsMultiDiscrete':
+                    action_tuple.add_discrete(action)
+                    """
                     if action[i].ndim == 1:
                         action_tuple.add_discrete(np.expand_dims(action[i], axis=0))
                     elif action[i].ndim == 2:
                         action_tuple.add_discrete(np.asarray(action[i]))
+                    """
                 self._env.set_actions(behavior_name, action_tuple)
 
         self._env.step()

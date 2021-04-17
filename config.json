@@ -17,7 +17,7 @@
     },
     "NavOpsMultiDiscrete": {
         "observation_space": {
-            "shape": [70]
+            "shape": [104]
         },
         "action_space": {
             "nvec": [5, 4]
