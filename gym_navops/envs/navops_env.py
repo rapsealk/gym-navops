@@ -48,7 +48,11 @@ class NavOpsDownloader:
         def download_hook(blocknum, bs, size):
             nonlocal block_size
             block_size += bs
-            sys.stdout.write(f'\rDownload {url}: ({min(100, block_size / size * 100):.2f}%)')
+            width = os.get_terminal_size().columns
+            message = '\rDownload' + f'{url}: ({block_size / size * 100:.2f}%)'
+            if len(message) > width:
+                message = message[:width//2-3] + '...' + message[-width//2:]
+            sys.stdout.write(message)
             if block_size == size:
                 sys.stdout.write('\n')
         return download_hook
