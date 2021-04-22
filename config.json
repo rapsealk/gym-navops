@@ -20,7 +20,7 @@
             "shape": [118]
         },
         "action_space": {
-            "nvec": [5, 4]
+            "nvec": [5, 2]
         }
     }
 }
