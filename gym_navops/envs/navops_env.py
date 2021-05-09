@@ -142,12 +142,12 @@ class NavOpsEnv(gym.Env):
                 reward = np.array([obs.terminal_steps.group_reward for obs in self.observation]).squeeze()
             else:
                 reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-            print(f'[gym-navops] TerminalRewards: {terminal_rewards}')
-            print(f'[gym-navops] EpisodeRewards: {reward}')
+            # print(f'[gym-navops] TerminalRewards: {terminal_rewards}')
+            # print(f'[gym-navops] EpisodeRewards: {reward}')
 
             if np.any(reward == 1.0): info['win'] = 0
             elif np.any(reward == -1.0): info['win'] = 1
-            print(f'[gym-navops] win: {info["win"]}')
+            print(f'[gym-navops] win: {info["win"]} (Episode Rewards: {reward})')
 
         else:
             self._env.step()
@@ -156,6 +156,8 @@ class NavOpsEnv(gym.Env):
                 observation = self.observation_cache
             self.observation_cache = observation
             reward = np.array([np.squeeze(obs.decision_steps.reward) for obs in self.observation])
+
+            # FIXME:
             if 0 in reward.shape:
                 reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
 
@@ -191,17 +193,21 @@ class NavOpsEnv(gym.Env):
         done = False
         terminal_rewards = np.zeros((self._n,))
         for team_id, (_, terminal_steps) in enumerate(self.steps):
-            # """
+            """
             if terminal_steps.reward.shape[0] > 0:
                 done = True
                 terminal_rewards[team_id] = terminal_steps.reward[0]    # FIXME: GroupReward
                 continue
             """
-            if terminal_steps.group_reward.shape[0] > 0:
+            # if terminal_steps.reward.shape[0] > 0 or terminal_steps.group_reward.shape[0] > 0:
+            #     print(f'[gym-navops] Team[{team_id}] terminal_reward: {terminal_steps.reward}, terminal_group_reward: {terminal_steps.group_reward}')
+            # if np.any(terminal_steps.group_reward.shape):
+            # if terminal_steps.group_reward.shape[0] > 0:
+            if len(terminal_steps):     # FIXME
                 done = True
-                terminal_rewards[team_id] = terminal_rewards.group_reward[0]
+                terminal_rewards[team_id] = terminal_steps.group_reward[0]
                 continue
-            """
+            # """
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
