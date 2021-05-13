@@ -3,6 +3,7 @@
 import os
 import sys
 import json
+import queue
 import zipfile
 from collections import namedtuple
 from datetime import datetime
@@ -109,6 +110,7 @@ class NavOpsEnv(gym.Env):
                         unzip.extractall(build_path)
 
         episode_side_channel = EpisodeSideChannel()
+        self._episode_event_queue = episode_side_channel.event_queue
         self._env = UnityEnvironment(
             build_path,
             worker_id=worker_id,
@@ -149,7 +151,8 @@ class NavOpsEnv(gym.Env):
             if 0 in observation.shape:
                 observation = self.observation_cache
             if self._group:
-                reward = np.array([obs.terminal_steps.group_reward for obs in self.observation]).squeeze()
+                # reward = np.array([obs.terminal_steps.group_reward for obs in self.observation]).squeeze()
+                reward = terminal_rewards.squeeze()
             else:
                 reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
             # print(f'[gym-navops] TerminalRewards: {terminal_rewards}')
@@ -202,22 +205,26 @@ class NavOpsEnv(gym.Env):
         observation = self._update_environment_state()
         done = False
         terminal_rewards = np.zeros((self._n,))
+
+        try:
+            blue_wins = self._episode_event_queue.get_nowait()
+        except queue.Empty:
+            blue_wins = None
+
         for team_id, (_, terminal_steps) in enumerate(self.steps):
-            """
-            if terminal_steps.reward.shape[0] > 0:
+            if len(terminal_steps):
+                print(f'[gym-navops] Episode done(#1) by terminal_steps: {len(terminal_steps)}')
                 done = True
-                terminal_rewards[team_id] = terminal_steps.reward[0]    # FIXME: GroupReward
+                # terminal_rewards[team_id] = terminal_steps.group_reward[0]
+                terminal_rewards[:] = terminal_steps.group_reward[0]
                 continue
-            """
-            # if terminal_steps.reward.shape[0] > 0 or terminal_steps.group_reward.shape[0] > 0:
-            #     print(f'[gym-navops] Team[{team_id}] terminal_reward: {terminal_steps.reward}, terminal_group_reward: {terminal_steps.group_reward}')
-            # if np.any(terminal_steps.group_reward.shape):
-            # if terminal_steps.group_reward.shape[0] > 0:
-            if len(terminal_steps):     # FIXME
+
+            if blue_wins is not None:
+                print(f'[gym-navops] Episode done(#2) by side_channel: {blue_wins}')
                 done = True
-                terminal_rewards[team_id] = terminal_steps.group_reward[0]
+                # terminal_rewards[team_id] = 1.0 if blue_wins else -1.0
+                terminal_rewards[:] = 1.0 if blue_wins else -1.0
                 continue
-            # """
 
             for i, behavior_name in enumerate(self.behavior_names):
                 action_tuple = ActionTuple()
