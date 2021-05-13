@@ -14,6 +14,8 @@ import gym
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple
 
+from gym_navops.envs.side_channel import EpisodeSideChannel
+
 Observation = namedtuple('Observation',
                          ('decision_steps', 'terminal_steps'))
 
@@ -106,7 +108,15 @@ class NavOpsEnv(gym.Env):
                     with zipfile.ZipFile(download_path) as unzip:
                         unzip.extractall(build_path)
 
-        self._env = UnityEnvironment(build_path, worker_id=worker_id, base_port=base_port, seed=seed, no_graphics=no_graphics)
+        episode_side_channel = EpisodeSideChannel()
+        self._env = UnityEnvironment(
+            build_path,
+            worker_id=worker_id,
+            base_port=base_port,
+            seed=seed,
+            no_graphics=no_graphics,
+            side_channels=[episode_side_channel]
+        )
 
         self._skip_frames = 4
 
