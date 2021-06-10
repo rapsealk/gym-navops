@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
 *.egg-info
+
+# protobuf
+*_pb2*.py
+
 NavOps/

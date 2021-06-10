@@ -20,7 +20,7 @@ from gym_navops.envs.side_channel import EpisodeSideChannel
 Observation = namedtuple('Observation',
                          ('decision_steps', 'terminal_steps'))
 
-with open(os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')) as f:
+with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
     config = ''.join(f.readlines())
     config = json.loads(config)
 
