@@ -14,9 +14,8 @@ import numpy as np
 import gym
 import grpc
 
-from utils import NavOpsDownloader
-from protos import navops_service_pb2
-from protos import navops_service_pb2_grpc
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+import navops_service_pb2, navops_service_pb2_grpc
 
 with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
     config = ''.join(f.readlines())
@@ -25,15 +24,17 @@ with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
 
 class NavOpsEnv(gym.Env):
 
-    def __init__(self, path: str = None):
+    def __init__(self, build_path=None):
         self._process: Optional[Popen] = None
         self._grpc_client = NavOpsGrpcClient(env=self)
 
         self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
         self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
 
-        if path is not None:
-            self._env_thread = Thread(target=self._run_env_subprocess, args=(path,))
+        self._skip_frame = 4
+
+        if build_path is not None:
+            self._env_thread = Thread(target=self._run_env_subprocess, args=(build_path,))
             self._env_thread.daemon = True
             self._env_thread.start()
 
@@ -41,16 +42,26 @@ class NavOpsEnv(gym.Env):
             print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Request heartbeat..')
             time.sleep(1)
 
-    def step(self):
-        response = self._grpc_client.call_environment_step()
-        observation = response.obs
+    def step(self, action):
+        for _ in range(self._skip_frame):
+            time.sleep(0.03)
+            response = self._grpc_client.call_environment_step(action)
+            if response.done:
+                break
+        info = {
+            'obs': response.obs,
+            'win': (response.reward == 1.0)
+        }
+        observation = self._decode_observation(response.obs)
         reward = response.reward
         done = response.done
-        info = {'numpy': self._decode_observation(observation)}
         return observation, reward, done, info
 
     def reset(self):
-        pass
+        # FIXME: EnvironmentResetRequest
+        zero_action = [0, 0]
+        response = self._grpc_client.call_environment_step(zero_action)
+        return self._decode_observation(response.obs)
 
     def render(self):
         pass
@@ -86,6 +97,7 @@ class NavOpsEnv(gym.Env):
                 *(fleet.rotation.cos, fleet.rotation.sin),
                 fleet.timestamp
             ])
+        buffer.extend(obs.dominance)
         buffer.extend(obs.target_index_onehot)
         buffer.extend(obs.raycast_hits)
         for battery in obs.batteries:
@@ -99,7 +111,8 @@ class NavOpsEnv(gym.Env):
         buffer.append(obs.ammo)
         buffer.extend(obs.speed_level_onehot)
         buffer.extend(obs.steer_level_onehot)
-        return np.array(buffer, dtype=np.float32)
+        obs_np = np.array(buffer, dtype=np.float32)
+        return np.expand_dims(obs_np, axis=0)
 
     @property
     def observation_space(self):
@@ -127,12 +140,12 @@ class NavOpsGrpcClient:
             sys.stderr.write(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] RequestHeartbeat: {e}\n')
         return False
 
-    def call_environment_step(self):
+    def call_environment_step(self, action):
         request = navops_service_pb2.EnvironmentStepRequest(
             actions=[
                 navops_service_pb2.DiscreteActionSpace(
-                    maneuver_action_id=np.random.randint(self.env.action_space.nvec[0]),
-                    attack_action_id=np.random.randint(self.env.action_space.nvec[1])
+                    maneuver_action_id=action[0],
+                    attack_action_id=action[1]
                 )
             ]
         )

@@ -20,7 +20,7 @@ import grpc
 import navops_service_pb2
 import navops_service_pb2_grpc
 
-with open(os.path.join(os.path.dirname(__file__), '..', 'config.json')) as f:
+with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
     config = ''.join(f.readlines())
     config = json.loads(config)
 

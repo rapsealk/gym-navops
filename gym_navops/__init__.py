@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from gym.envs.registration import register
 
+"""
 register(
     id='NavOps-v0',
     entry_point='gym_navops.envs:NavOpsEnv',
@@ -31,22 +32,17 @@ register(
         '_group': False
     }
 )
+"""
 
 register(
     id='NavOpsMultiDiscrete-v0',
     entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
-        'worker_id': 0,
-        'base_port': None,
-        'seed': 0,
-        'no_graphics': False,
-        'override_path': None,
-        '_build': 'NavOpsMultiDiscrete',
-        '_n': 2,
-        '_group': False
+        'build_path': None
     }
 )
 
+"""
 register(
     id='NavOpsMultiDiscrete-v1',
     entry_point='gym_navops.envs:NavOpsEnv',
@@ -76,6 +72,7 @@ register(
         '_group': True
     }
 )
+"""
 
 """
 register(
