@@ -1,23 +1,22 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 import os
+import sys
 import json
-import queue
-import zipfile
-from collections import namedtuple
+import time
 from datetime import datetime
+from typing import Optional
 from multiprocessing import Lock
+from subprocess import Popen
+from threading import Thread
 
 import numpy as np
 import gym
-# from mlagents_envs.environment import UnityEnvironment
-# from mlagents_envs.base_env import ActionTuple
+import grpc
 
-# from gym_navops.envs.side_channel import EpisodeSideChannel
 from utils import NavOpsDownloader
-
-Observation = namedtuple('Observation',
-                         ('decision_steps', 'terminal_steps'))
+from protos import navops_service_pb2
+from protos import navops_service_pb2_grpc
 
 with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
     config = ''.join(f.readlines())
@@ -26,204 +25,124 @@ with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
 
 class NavOpsEnv(gym.Env):
 
-    metadata = {'render.modes': ['human']}
-    __lock = Lock()
+    def __init__(self, path: str = None):
+        self._process: Optional[Popen] = None
+        self._grpc_client = NavOpsGrpcClient(env=self)
 
-    def __init__(
-        self,
-        worker_id=0,
-        base_port=None,
-        seed=0,
-        no_graphics=False,
-        override_path=None,
-        _build='NavOps',
-        _n=2,
-        _group=False
-    ):
-        self._build = _build
+        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
+        self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
 
-        if _build == 'NavOps':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOps"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOps"]["action_space"]["shape"]))
-        elif _build == 'NavOpsDiscrete':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsDiscrete"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.Discrete(config["NavOpsDiscrete"]["action_space"]["n"])
-        elif _build == 'NavOpsMultiDiscrete':
-            self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
-            self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
+        if path is not None:
+            self._env_thread = Thread(target=self._run_env_subprocess, args=(path,))
+            self._env_thread.daemon = True
+            self._env_thread.start()
 
-        self._n = _n
-        if _n == 1:
-            _build += 'Single'
-        self._group = _group
+        while not self._grpc_client.request_heartbeat():
+            print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Request heartbeat..')
+            time.sleep(1)
 
-        if override_path:
-            build_path = override_path
-        else:
-            build_dir_path = os.path.join(os.path.dirname(__file__), 'NavOps')
-            if not os.path.exists(build_dir_path):
-                os.mkdir(build_dir_path)
-            build_path = os.path.join(build_dir_path, f'{self._build}-v0')
-            with self.__lock:
-                if not os.path.exists(build_path):
-                    download_path = build_path + '.zip'
-                    if not os.path.exists(download_path):
-                        NavOpsDownloader().download(_build, download_path)
-                    with zipfile.ZipFile(download_path) as unzip:
-                        unzip.extractall(build_path)
-
-        # episode_side_channel = EpisodeSideChannel()
-        """
-        self._episode_event_queue = episode_side_channel.event_queue
-        self._env = UnityEnvironment(
-            build_path,
-            worker_id=worker_id,
-            base_port=base_port,
-            seed=seed,
-            no_graphics=no_graphics,
-            side_channels=[episode_side_channel]
-        )
-        """
-
-        self._skip_frames = 4
-
-        self.steps = []
-        self.observation = []
-
-    def step(self, action):
-        done, info = False, {'win': -1}
-
-        skip_frame_step = self._skip_frame(action)
-        for _ in range(self._skip_frames):
-            observation, done, terminal_rewards = next(skip_frame_step)
-            if done:
-                break
-
-        if done:
-            """
-            if self._n == 1:
-                if np.any(terminal_rewards[0] == 1.0): info['win'] = 0
-                elif np.any(terminal_rewards[0] == -1.0): info['win'] = 1
-                # elif terminal_rewards[0] == 0.0: info['win'] = -1
-            else:
-                for i, terminal_reward in enumerate(terminal_rewards):
-                    if np.any(terminal_reward) == 1.0:
-                        info['win'] = i
-                        break
-            """
-
-            self._env.step()
-            if 0 in observation.shape:
-                observation = self.observation_cache
-            if self._group:
-                # reward = np.array([obs.terminal_steps.group_reward for obs in self.observation]).squeeze()
-                reward = terminal_rewards.squeeze()
-            else:
-                reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-            # print(f'[gym-navops] TerminalRewards: {terminal_rewards}')
-            # print(f'[gym-navops] EpisodeRewards: {reward}')
-
-            if np.any(reward == 1.0): info['win'] = 0
-            elif np.any(reward == -1.0): info['win'] = 1
-            print(f'[gym-navops] win: {info["win"]} (Episode Rewards: {reward})')
-
-        else:
-            self._env.step()
-            observation = self._update_environment_state()
-            if 0 in observation.shape:
-                observation = self.observation_cache
-            self.observation_cache = observation
-            reward = np.array([np.squeeze(obs.decision_steps.reward) for obs in self.observation])
-
-            # FIXME:
-            if 0 in reward.shape:
-                reward = np.array([np.squeeze(obs.terminal_steps.reward) for obs in self.observation])
-
-        if (reward := np.squeeze(reward)).ndim == 0:
-            reward = np.expand_dims(reward, axis=0)
-
+    def step(self):
+        response = self._grpc_client.call_environment_step()
+        observation = response.obs
+        reward = response.reward
+        done = response.done
+        info = {'numpy': self._decode_observation(observation)}
         return observation, reward, done, info
 
     def reset(self):
-        self._env.reset()
-        self.behavior_names = [name for name in self._env.behavior_specs.keys()]
-        print(f'[{datetime.now().isoformat()}] NavOpsEnv.Reset() => behavior_names: {self.behavior_names}')
+        pass
 
-        return self._update_environment_state()
-
-    def render(self, mode='human', close=False):
+    def render(self):
         pass
 
     def close(self):
-        self._env.close()
+        if self._process is None:
+            return
+        return_code = self._process.poll()
+        print('[GrpcEnvironment] close:', return_code)
+        if not return_code:
+            self._process.terminate()
+        self._process.wait()
 
-    def _skip_frame(self, action):
-        concat_actions = np.concatenate((
-            np.expand_dims(action, axis=0),
-            np.zeros((self._skip_frames-1,) + action.shape)
-        ))
+        # self._env_thread.interrupt()
+        self._env_thread.join()
 
-        for action in concat_actions:
-            yield self._step(action)
+    def _run_env_subprocess(self, path: str):
+        self._process = Popen(path)
+        # self._process.poll()
+        self._process.wait()
+        print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Subprocess is terminated.')
 
-    def _step(self, action):
-        observation = self._update_environment_state()
-        done = False
-        terminal_rewards = np.zeros((self._n,))
-
-        try:
-            blue_wins = self._episode_event_queue.get_nowait()
-        except queue.Empty:
-            blue_wins = None
-
-        for team_id, (_, terminal_steps) in enumerate(self.steps):
-            if len(terminal_steps):
-                print(f'[gym-navops] Episode done(#1) by terminal_steps: {len(terminal_steps)}')
-                done = True
-                # terminal_rewards[team_id] = terminal_steps.group_reward[0]
-                terminal_rewards[:] = terminal_steps.group_reward[0]
-                continue
-
-            if blue_wins is not None:
-                print(f'[gym-navops] Episode done(#2) by side_channel: {blue_wins}')
-                done = True
-                # terminal_rewards[team_id] = 1.0 if blue_wins else -1.0
-                terminal_rewards[:] = 1.0 if blue_wins else -1.0
-                continue
-
-            for i, behavior_name in enumerate(self.behavior_names):
-                action_tuple = ActionTuple()
-                if self._build == 'NavOps':
-                    action_tuple.add_continuous(action[i][np.newaxis, :])
-                elif self._build == 'NavOpsDiscrete':
-                    action_tuple.add_discrete(np.expand_dims([action[i]], axis=0))
-                elif self._build == 'NavOpsMultiDiscrete':
-                    action_tuple.add_discrete(action)
-                    """
-                    if action[i].ndim == 1:
-                        action_tuple.add_discrete(np.expand_dims(action[i], axis=0))
-                    elif action[i].ndim == 2:
-                        action_tuple.add_discrete(np.asarray(action[i]))
-                    """
-                self._env.set_actions(behavior_name, action_tuple)
-
-        self._env.step()
-
-        return observation, done, terminal_rewards
-
-    @property
-    def action_space(self):
-        return self._action_space
+    def _decode_observation(self, obs: navops_service_pb2.Observation):
+        buffer = []
+        for fleet in obs.fleets:
+            buffer.extend([
+                fleet.team_id,
+                fleet.hp,
+                fleet.fuel,
+                fleet.destroyed,
+                fleet.detected,
+                *(fleet.position.x, fleet.position.y),
+                *(fleet.rotation.cos, fleet.rotation.sin),
+                fleet.timestamp
+            ])
+        buffer.extend(obs.target_index_onehot)
+        buffer.extend(obs.raycast_hits)
+        for battery in obs.batteries:
+            buffer.extend([
+                *(battery.rotation.cos, battery.rotation.sin),
+                battery.reloaded,
+                battery.cooldown,
+                battery.damaged,
+                battery.repair_progress
+            ])
+        buffer.append(obs.ammo)
+        buffer.extend(obs.speed_level_onehot)
+        buffer.extend(obs.steer_level_onehot)
+        return np.array(buffer, dtype=np.float32)
 
     @property
     def observation_space(self):
         return self._observation_space
 
-    def _update_environment_state(self):
-        self.steps = [self._env.get_steps(behavior_name=behavior) for behavior in self.behavior_names]
-        self.observation = [Observation(*step) for step in self.steps]
-        obs = np.array([obs.decision_steps.obs for obs in self.observation]).squeeze(0).squeeze(0) # .squeeze()
-        return obs
+    @property
+    def action_space(self):
+        return self._action_space
+
+
+class NavOpsGrpcClient:
+
+    def __init__(self, env=None, port=9090):
+        self._env = env
+        channel = grpc.insecure_channel(f'localhost:{port}')
+        self._stub = navops_service_pb2_grpc.NavOpsGrpcServiceStub(channel)
+
+    def request_heartbeat(self):
+        request = navops_service_pb2.HeartbeatRequest()
+        try:
+            response = self._stub.RequestHeartbeat(request)
+            sys.stdout.write(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] RequestHeartbeat: {response.succeed}\n')
+            return response.succeed
+        except Exception as e:
+            sys.stderr.write(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] RequestHeartbeat: {e}\n')
+        return False
+
+    def call_environment_step(self):
+        request = navops_service_pb2.EnvironmentStepRequest(
+            actions=[
+                navops_service_pb2.DiscreteActionSpace(
+                    maneuver_action_id=np.random.randint(self.env.action_space.nvec[0]),
+                    attack_action_id=np.random.randint(self.env.action_space.nvec[1])
+                )
+            ]
+        )
+        response = self._stub.CallEnvironmentStep(request)
+
+        return response
+
+    @property
+    def env(self):
+        return self._env
 
 
 if __name__ == "__main__":

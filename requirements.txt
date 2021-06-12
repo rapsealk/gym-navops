@@ -1,6 +1,4 @@
 gym
 numpy
-# mlagents
-mlagents_envs
 grpcio~=1.32.0
 grpcio-tools~=1.32.0

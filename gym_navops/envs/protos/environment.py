@@ -8,7 +8,7 @@ import json
 from concurrent import futures
 from datetime import datetime
 from typing import Optional
-# from multiprocessing import Pipe
+from itertools import count
 from subprocess import Popen
 from threading import Thread
 
@@ -35,9 +35,8 @@ class GrpcEnvironment:
     def __init__(self, path: str = None):
         self._process: Optional[Popen] = None
         self._grpc_client = NavOpsGrpcClient(env=self)
-        # grpc_client.call_environment_step()
 
-        # self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
+        self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
         self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
 
         if path is not None:
@@ -49,21 +48,12 @@ class GrpcEnvironment:
             print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Request heartbeat..')
             time.sleep(1)
 
-    """
-    def run(self, path):
-        self._process = Popen(path)
-        print('process:', self._process)
-        # self._process.poll()
-        self._process.wait()
-        print('clear')
-    """
-
     def step(self):
         response = self._grpc_client.call_environment_step()
-        observation = None
+        observation = response.obs
         reward = response.reward
         done = response.done
-        info = {}
+        info = {'numpy': self._decode_observation(observation)}
         return observation, reward, done, info
 
     def close(self):
@@ -83,6 +73,45 @@ class GrpcEnvironment:
         # self._process.poll()
         self._process.wait()
         print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Subprocess is terminated.')
+
+    def _decode_observation(self, obs: navops_service_pb2.Observation):
+        """
+        message Observation {
+            float ammo = 5;
+            repeated float speed_level_onehot = 6;
+            repeated float steer_level_onehot = 7;
+        }
+        """
+        buffer = []
+        for fleet in obs.fleets:
+            buffer.extend([
+                fleet.team_id,
+                fleet.hp,
+                fleet.fuel,
+                fleet.destroyed,
+                fleet.detected,
+                *(fleet.position.x, fleet.position.y),
+                *(fleet.rotation.cos, fleet.rotation.sin),
+                fleet.timestamp
+            ])
+        buffer.extend(obs.target_index_onehot)
+        buffer.extend(obs.raycast_hits)
+        for battery in obs.batteries:
+            buffer.extend([
+                *(battery.rotation.cos, battery.rotation.sin),
+                battery.reloaded,
+                battery.cooldown,
+                battery.damaged,
+                battery.repair_progress
+            ])
+        buffer.append(obs.ammo)
+        buffer.extend(obs.speed_level_onehot)
+        buffer.extend(obs.steer_level_onehot)
+        return np.array(buffer, dtype=np.float32)
+
+    @property
+    def observation_space(self):
+        return self._observation_space
 
     @property
     def action_space(self):
@@ -163,21 +192,25 @@ def main():
 if __name__ == "__main__":
     # main()
 
-    path = os.path.join('C:\\', 'Users', 'rapsealk', 'Desktop', 'NavOpsGrpc', 'NavOps.exe')
-    # path = None
+    # path = os.path.join('C:\\', 'Users', 'rapsealk', 'Desktop', 'NavOpsGrpc', 'NavOps.exe')
+    path = None
     env = GrpcEnvironment(path)
 
-    count = 0
-    t = time.time()
-    # for _ in range(128):
-    done = False
-    rewards = []
-    while not done:
-        count += 1
-        obs, reward, done, info = env.step()
-        rewards.append(reward)
-        time.sleep(0.1)
-    print('Steps:', count)
-    print('Time:', time.time() - t)
-    print(rewards)
+    for episode in count(1):
+        t = time.time()
+        # for _ in range(128):
+        done = False
+        rewards = []
+        steps = 0
+        while not done:
+            steps += 1
+            obs, reward, done, info = env.step()
+            rewards.append(reward)
+            time.sleep(0.1)
+        print(f'Episode: {episode} ({steps} steps, {time.time() - t}s)')
+        print(obs)
+        print(info['numpy'].shape)
+        print(rewards[-5:])
+        if episode == 2:
+            break
     env.close()
