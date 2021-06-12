@@ -43,9 +43,11 @@ class NavOpsEnv(gym.Env):
             time.sleep(1)
 
     def step(self, action):
+        reward = 0.0
         for _ in range(self._skip_frame):
             time.sleep(0.03)
             response = self._grpc_client.call_environment_step(action)
+            reward += response.reward
             if response.done:
                 break
         info = {
@@ -53,7 +55,7 @@ class NavOpsEnv(gym.Env):
             'win': (response.reward == 1.0)
         }
         observation = self._decode_observation(response.obs)
-        reward = response.reward
+        # reward = response.reward
         done = response.done
         return observation, reward, done, info
 
