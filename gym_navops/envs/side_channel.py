@@ -3,9 +3,10 @@
 import uuid
 from queue import Queue
 
-from mlagents_envs.side_channel.side_channel import SideChannel, IncomingMessage
+# from mlagents_envs.side_channel.side_channel import SideChannel, IncomingMessage
 
 
+"""
 class EpisodeSideChannel(SideChannel):
 
     def __init__(self):
@@ -20,6 +21,7 @@ class EpisodeSideChannel(SideChannel):
     @property
     def event_queue(self):
         return self._event_queue
+"""
 
 
 if __name__ == "__main__":

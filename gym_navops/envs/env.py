@@ -1,33 +1,15 @@
-#/usr/bin/python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import argparse
 import os
-import sys
-import time
-import json
-from concurrent import futures
 from datetime import datetime
-from typing import Optional
-# from multiprocessing import Pipe
 from subprocess import Popen
 from threading import Thread
+from typing import Optional
 
 import gym
-import numpy as np
 import grpc
-# from google.protobuf import empty_pb2
 
-import navops_service_pb2
-import navops_service_pb2_grpc
-
-with open(os.path.join(os.path.dirname(__file__), '..', 'config.json')) as f:
-    config = ''.join(f.readlines())
-    config = json.loads(config)
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--client', action='store_true', default=False)
-parser.add_argument('-p', '--port', default=9090, type=int)
-args = parser.parse_args()
+with open(os.path.join(os.path.dirname(__file__), '..'))
 
 
 class GrpcEnvironment:
@@ -89,23 +71,6 @@ class GrpcEnvironment:
         return self._action_space
 
 
-"""
-class NavOpsGrpcServer(navops_service_pb2_grpc.NavOpsGrpcServiceServicer):
-
-    def __init__(self):
-        pass
-
-    def CallEnvironmentStep(self, request, context):
-        print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] CallEnvironmentStep(request={request})')
-        response = navops_service_pb2.EnvironmentStepResponse(
-            obs=navops_service_pb2.Observation(),
-            reward=np.random.uniform(-1.0, 1.0, (1,)).tolist()[0],
-            done=True
-        )
-        return response
-"""
-
-
 class NavOpsGrpcClient:
 
     def __init__(self, env=None, port=9090):
@@ -143,41 +108,5 @@ class NavOpsGrpcClient:
         return self._env
 
 
-def main():
-    if args.client:
-        client = NavOpsGrpcClient(port=args.port)
-        while input('x: ') != 'q':
-            t = time.time()
-            for _ in range(1000):
-                client.call_environment_step()
-            print(f'Time: {time.time() - t}s')
-    else:
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
-        navops_service_pb2_grpc.add_NavOpsGrpcServiceServicer_to_server(NavOpsGrpcServer(), server)
-        server.add_insecure_port(f'[::]:{args.port}')
-        print('Server is running..')
-        server.start()
-        server.wait_for_termination()
-
-
 if __name__ == "__main__":
-    # main()
-
-    path = os.path.join('C:\\', 'Users', 'rapsealk', 'Desktop', 'NavOpsGrpc', 'NavOps.exe')
-    # path = None
-    env = GrpcEnvironment(path)
-
-    count = 0
-    t = time.time()
-    # for _ in range(128):
-    done = False
-    rewards = []
-    while not done:
-        count += 1
-        obs, reward, done, info = env.step()
-        rewards.append(reward)
-        time.sleep(0.1)
-    print('Steps:', count)
-    print('Time:', time.time() - t)
-    print(rewards)
-    env.close()
+    pass
