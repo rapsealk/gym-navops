@@ -99,7 +99,11 @@ class NavOpsEnv(gym.Env):
                 *(fleet.rotation.cos, fleet.rotation.sin),
                 fleet.timestamp
             ])
-        buffer.extend(obs.dominance)
+        for location in obs.locations:
+            buffer.extend([
+                location.dominance,
+                *(location.position.x, location.position.y)
+            ])
         buffer.extend(obs.target_index_onehot)
         buffer.extend(obs.raycast_hits)
         for battery in obs.batteries:
