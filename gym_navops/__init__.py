@@ -38,7 +38,8 @@ register(
     id='NavOpsMultiDiscrete-v0',
     entry_point='gym_navops.envs:NavOpsEnv',
     kwargs={
-        'build_path': None
+        'build_path': None,
+        'port': 9090
     }
 )
 

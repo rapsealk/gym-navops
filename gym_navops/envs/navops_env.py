@@ -15,7 +15,8 @@ import gym
 import grpc
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-import navops_service_pb2, navops_service_pb2_grpc
+import navops_service_pb2       # noqa: E402
+import navops_service_pb2_grpc  # noqa: E402
 
 with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
     config = ''.join(f.readlines())
@@ -24,9 +25,9 @@ with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
 
 class NavOpsEnv(gym.Env):
 
-    def __init__(self, build_path=None):
+    def __init__(self, build_path=None, port=9090):
         self._process: Optional[Popen] = None
-        self._grpc_client = NavOpsGrpcClient(env=self)
+        self._grpc_client = NavOpsGrpcClient(env=self, port=port)
 
         self._observation_space = gym.spaces.Box(-1.0, 1.0, shape=tuple(config["NavOpsMultiDiscrete"]["observation_space"]["shape"]))
         self._action_space = gym.spaces.MultiDiscrete(config["NavOpsMultiDiscrete"]["action_space"]["nvec"])
@@ -34,7 +35,7 @@ class NavOpsEnv(gym.Env):
         self._skip_frame = 4
 
         if build_path is not None:
-            self._env_thread = Thread(target=self._run_env_subprocess, args=(build_path,))
+            self._env_thread = Thread(target=self._run_env_subprocess, args=(build_path, port))
             self._env_thread.daemon = True
             self._env_thread.start()
 
@@ -80,8 +81,8 @@ class NavOpsEnv(gym.Env):
         # self._env_thread.interrupt()
         self._env_thread.join()
 
-    def _run_env_subprocess(self, path: str):
-        self._process = Popen(path)
+    def _run_env_subprocess(self, path: str, port: int = 9090):
+        self._process = Popen([path, f'--port={port}'])
         # self._process.poll()
         self._process.wait()
         print(f'[{datetime.now().isoformat()}] [{self.__class__.__name__}] Subprocess is terminated.')
@@ -117,6 +118,8 @@ class NavOpsEnv(gym.Env):
         buffer.append(obs.ammo)
         buffer.extend(obs.speed_level_onehot)
         buffer.extend(obs.steer_level_onehot)
+        for position in obs.obstacle_positions:
+            buffer.extend(*[position.x, position.y])
         obs_np = np.array(buffer, dtype=np.float32)
         return np.expand_dims(obs_np, axis=0)
 
