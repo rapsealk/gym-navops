@@ -119,7 +119,7 @@ class NavOpsEnv(gym.Env):
         buffer.extend(obs.speed_level_onehot)
         buffer.extend(obs.steer_level_onehot)
         for position in obs.obstacle_positions:
-            buffer.extend(*[position.x, position.y])
+            buffer.extend([position.x, position.y])
         obs_np = np.array(buffer, dtype=np.float32)
         return np.expand_dims(obs_np, axis=0)
 
