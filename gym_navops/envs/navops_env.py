@@ -6,7 +6,6 @@ import json
 import time
 from datetime import datetime
 from typing import Optional
-from multiprocessing import Lock
 from subprocess import Popen
 from threading import Thread
 

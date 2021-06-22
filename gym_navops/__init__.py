@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 from gym.envs.registration import register
 
+from .config import EnvironmentConfig
+
 """
 register(
     id='NavOps-v0',
