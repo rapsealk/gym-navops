@@ -15,9 +15,9 @@ def main():
     # build_path = os.path.join(os.path.dirname(__file__), 'NavOps')
     env = gym.make('NavOpsDiscrete-v0', override_path=build_path, no_graphics=True)
 
-    for episode in count(1):
+    for _ in count(1):
         observation = env.reset()
-        for frame in count(1):
+        for _ in count(1):
             actions = np.concatenate([
                 np.random.randint(0, env.action_space.nvec[0], size=(2, 1)),
                 np.random.randint(0, env.action_space.nvec[1], size=(2, 1))

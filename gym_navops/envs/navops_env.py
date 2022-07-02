@@ -165,12 +165,10 @@ class NavOpsEnv(gym.Env):
             return np.random.normal(0, 1, (self._n,)+self.observation_space.shape)
 
         self._env.reset()
-        self.behavior_names = [name for name in self._env.behavior_specs.keys()]
+        self.behavior_names = list(self._env.behavior_specs.keys())
         print(f'[{datetime.now().isoformat()}] NavOpsEnv.Reset() => behavior_names: {self.behavior_names}')
 
-        observation = self._update_environment_state()
-
-        return observation
+        return self._update_environment_state()
 
     def render(self, mode='human', close=False):
         pass
